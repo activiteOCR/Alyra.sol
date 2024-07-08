@@ -157,12 +157,14 @@ export default function useCandyMachineV3(
         nftGuards?: NftPaymentMintSettings[];
       } = {}
     ) => {
-      if (!guardsAndGroups[opts.groupLabel || "default"])
+      const groupLabel = opts.groupLabel || "default";
+      if (!guardsAndGroups[groupLabel]) {
         throw new Error("Unknown guard group label");
+      }
 
-      const allowList = opts.groupLabel &&
-        proofMemo.merkles[opts.groupLabel] && {
-          proof: proofMemo.merkles[opts.groupLabel].proof,
+      const allowList = groupLabel &&
+        proofMemo.merkles[groupLabel] && {
+          proof: proofMemo.merkles[groupLabel].proof,
         };
 
       let nfts: (Sft | SftWithToken | Nft | NftWithToken)[] = [];
@@ -176,8 +178,9 @@ export default function useCandyMachineV3(
 
         const transactionBuilders: TransactionBuilder[] = [];
         if (allowList) {
-          if (!proofMemo.merkles[opts.groupLabel || "default"].proof.length)
+          if (!proofMemo.merkles[groupLabel].proof.length) {
             throw new Error("User is not in allowed list");
+          }
 
           transactionBuilders.push(
             callCandyGuardRouteBuilder(mx, {
@@ -186,8 +189,7 @@ export default function useCandyMachineV3(
               group: opts.groupLabel,
               settings: {
                 path: "proof",
-                merkleProof:
-                  proofMemo.merkles[opts.groupLabel || "default"].proof,
+                merkleProof: proofMemo.merkles[groupLabel].proof,
               },
             })
           );
@@ -196,7 +198,7 @@ export default function useCandyMachineV3(
           transactionBuilders.push(
             await mintFromCandyMachineBuilder(mx, {
               candyMachine,
-              collectionUpdateAuthority: candyMachine.authorityAddress, // mx.candyMachines().pdas().authority({candyMachine: candyMachine.address})
+              collectionUpdateAuthority: candyMachine.authorityAddress,
               group: opts.groupLabel,
               guards: {
                 nftBurn: opts.nftGuards && opts.nftGuards[index]?.burn,
@@ -219,14 +221,15 @@ export default function useCandyMachineV3(
           transactionBuilders[i].getSigners().forEach((s) => {
             if ("signAllTransactions" in s) signers[s.publicKey.toString()] = s;
             else if ("secretKey" in s) tx.partialSign(s);
-            // @ts-ignore
-            else if ("_signer" in s) tx.partialSign(s._signer);
+            //else if ("_signer" in s) tx.partialSign(s._signer);
           });
         });
         let signedTransactions = transactions;
 
         for (let signer in signers) {
-          signedTransactions = await signers[signer].signAllTransactions(transactions);
+          signedTransactions = await signers[signer].signAllTransactions(
+            transactions
+          );
         }
         if (allowList) {
           const allowListCallGuardRouteTx = signedTransactions.shift();
@@ -261,11 +264,6 @@ export default function useCandyMachineV3(
           if (guards.mintLimit?.mintCounter)
             guards.mintLimit.mintCounter.count += nfts.length;
         });
-        // setItems((x) => ({
-        //   ...x,
-        //   remaining: x.remaining - nfts.length,
-        //   redeemed: x.redeemed + nfts.length,
-        // }));
       } catch (error: any) {
         let message = error.msg || "Minting failed! Please try again!";
         if (!error.msg) {
@@ -294,6 +292,154 @@ export default function useCandyMachineV3(
     },
     [candyMachine, guardsAndGroups, mx, wallet?.publicKey, proofMemo, refresh]
   );
+
+  // const mint = React.useCallback(
+  //   async (
+  //     quantityString: number = 1,
+  //     opts: {
+  //       groupLabel?: string;
+  //       nftGuards?: NftPaymentMintSettings[];
+  //     } = {}
+  //   ) => {
+  //     if (!guardsAndGroups[opts.groupLabel || "default"])
+  //       throw new Error("Unknown guard group label");
+
+  //     const allowList = opts.groupLabel &&
+  //       proofMemo.merkles[opts.groupLabel] && {
+  //         proof: proofMemo.merkles[opts.groupLabel].proof,
+  //       };
+
+  //     let nfts: (Sft | SftWithToken | Nft | NftWithToken)[] = [];
+  //     try {
+  //       if (!candyMachine) throw new Error("Candy Machine not loaded yet!");
+
+  //       setStatus((x) => ({
+  //         ...x,
+  //         minting: true,
+  //       }));
+
+  //       const transactionBuilders: TransactionBuilder[] = [];
+  //       if (allowList) {
+  //         if (!proofMemo.merkles[opts.groupLabel || "default"].proof.length)
+  //           throw new Error("User is not in allowed list");
+
+  //         transactionBuilders.push(
+  //           callCandyGuardRouteBuilder(mx, {
+  //             candyMachine,
+  //             guard: "allowList",
+  //             group: opts.groupLabel,
+  //             settings: {
+  //               path: "proof",
+  //               merkleProof:
+  //                 proofMemo.merkles[opts.groupLabel || "default"].proof,
+  //             },
+  //           })
+  //         );
+  //       }
+  //       for (let index = 0; index < quantityString; index++) {
+  //         transactionBuilders.push(
+  //           await mintFromCandyMachineBuilder(mx, {
+  //             candyMachine,
+  //             collectionUpdateAuthority: candyMachine.authorityAddress, // mx.candyMachines().pdas().authority({candyMachine: candyMachine.address})
+  //             group: opts.groupLabel,
+  //             guards: {
+  //               nftBurn: opts.nftGuards && opts.nftGuards[index]?.burn,
+  //               nftPayment: opts.nftGuards && opts.nftGuards[index]?.payment,
+  //               nftGate: opts.nftGuards && opts.nftGuards[index]?.gate,
+  //               allowList,
+  //             },
+  //           })
+  //         );
+  //       }
+  //       const blockhash = await mx.rpc().getLatestBlockhash();
+
+  //       const transactions = transactionBuilders.map((t) =>
+  //         t.toTransaction(blockhash)
+  //       );
+  //       const signers: { [k: string]: IdentitySigner } = {};
+  //       transactions.forEach((tx, i) => {
+  //         tx.feePayer = wallet.publicKey;
+  //         tx.recentBlockhash = blockhash.blockhash;
+  //         transactionBuilders[i].getSigners().forEach((s) => {
+  //           if ("signAllTransactions" in s) signers[s.publicKey.toString()] = s;
+  //           else if ("secretKey" in s) tx.partialSign(s);
+  //           // @ts-ignore
+  //           else if ("_signer" in s) tx.partialSign(s._signer);
+  //         });
+  //       });
+  //       let signedTransactions = transactions;
+
+  //       for (let signer in signers) {
+  //         signedTransactions = await signers[signer].signAllTransactions(
+  //           transactions
+  //         );
+  //       }
+  //       if (allowList) {
+  //         const allowListCallGuardRouteTx = signedTransactions.shift();
+  //         const allowListCallGuardRouteTxBuilder = transactionBuilders.shift();
+  //         await mx.rpc().sendAndConfirmTransaction(allowListCallGuardRouteTx, {
+  //           commitment: "processed",
+  //         });
+  //       }
+  //       const output = await Promise.all(
+  //         signedTransactions.map((tx, i) => {
+  //           return mx
+  //             .rpc()
+  //             .sendAndConfirmTransaction(tx, { commitment: "finalized" })
+  //             .then((tx) => ({
+  //               ...tx,
+  //               context: transactionBuilders[i].getContext() as any,
+  //             }));
+  //         })
+  //       );
+  //       nfts = await Promise.all(
+  //         output.map(({ context }) =>
+  //           mx
+  //             .nfts()
+  //             .findByMint({
+  //               mintAddress: context.mintSigner.publicKey,
+  //               tokenAddress: context.tokenAddress,
+  //             })
+  //             .catch((e) => null)
+  //         )
+  //       );
+  //       Object.values(guardsAndGroups).forEach((guards) => {
+  //         if (guards.mintLimit?.mintCounter)
+  //           guards.mintLimit.mintCounter.count += nfts.length;
+  //       });
+  //       // setItems((x) => ({
+  //       //   ...x,
+  //       //   remaining: x.remaining - nfts.length,
+  //       //   redeemed: x.redeemed + nfts.length,
+  //       // }));
+  //     } catch (error: any) {
+  //       let message = error.msg || "Minting failed! Please try again!";
+  //       if (!error.msg) {
+  //         if (!error.message) {
+  //           message = "Transaction Timeout! Please try again.";
+  //         } else if (error.message.indexOf("0x138")) {
+  //         } else if (error.message.indexOf("0x137")) {
+  //           message = `SOLD OUT!`;
+  //         } else if (error.message.indexOf("0x135")) {
+  //           message = `Insufficient funds to mint. Please fund your wallet.`;
+  //         }
+  //       } else {
+  //         if (error.code === 311) {
+  //           message = `SOLD OUT!`;
+  //         } else if (error.code === 312) {
+  //           message = `Minting period hasn't started yet.`;
+  //         }
+  //       }
+  //       console.error(error);
+  //       throw new Error(message);
+  //     } finally {
+  //       setStatus((x) => ({ ...x, minting: false }));
+  //       refresh();
+  //       return nfts.filter((a) => a);
+  //     }
+  //   },
+  //   [candyMachine, guardsAndGroups, mx, wallet?.publicKey, proofMemo, refresh]
+  // );
 
   React.useEffect(() => {
     if (!mx || !wallet.publicKey) return;
@@ -338,32 +484,61 @@ export default function useCandyMachineV3(
     );
   }, [refresh]);
 
+  // React.useEffect(() => {
+  //   const walletAddress = wallet.publicKey;
+  //   if (!walletAddress || !candyMachine) return;
+  //   console.log(
+  //     "useEffact([mx, wallet, nftHoldings, proofMemo, candyMachine])"
+  //   );
+
+  //   (async () => {
+  //     const guards = {
+  //       default: await parseGuardGroup(
+  //         {
+  //           guards: candyMachine.candyGuard.guards,
+  //           candyMachine,
+  //           nftHoldings,
+  //           verifyProof: proofMemo.verifyProof,
+  //           walletAddress,
+  //         },
+  //         mx
+  //       ),
+  //     };
+  //     await Promise.all(
+  //       candyMachine.candyGuard.groups.map(async (x) => {
+  //         guards[x.label] = await parseGuardGroup(
+  //           {
+  //             guards: mergeGuards([candyMachine.candyGuard.guards, x.guards]),
+  //             label: x.label,
+  //             candyMachine,
+  //             nftHoldings,
+  //             verifyProof: proofMemo.verifyProof,
+  //             walletAddress,
+  //           },
+  //           mx
+  //         );
+  //       })
+  //     );
+  //     setGuardsAndGroups(guards);
+  //   })();
+  // }, [wallet.publicKey, nftHoldings, proofMemo, candyMachine]);
+
   React.useEffect(() => {
     const walletAddress = wallet.publicKey;
     if (!walletAddress || !candyMachine) return;
+
     console.log(
-      "useEffact([mx, wallet, nftHoldings, proofMemo, candyMachine])"
+      "useEffect([mx, wallet, nftHoldings, proofMemo, candyMachine])"
     );
 
     (async () => {
-      const guards = {
-        default: await parseGuardGroup(
-          {
-            guards: candyMachine.candyGuard.guards,
-            candyMachine,
-            nftHoldings,
-            verifyProof: proofMemo.verifyProof,
-            walletAddress,
-          },
-          mx
-        ),
-      };
-      await Promise.all(
-        candyMachine.candyGuard.groups.map(async (x) => {
-          guards[x.label] = await parseGuardGroup(
+      const guards: { [key: string]: GuardGroup } = {};
+      if (candyMachine.candyGuard) {
+        // Ensure candyGuard and its properties are not null
+        if (candyMachine.candyGuard.guards) {
+          guards.default = await parseGuardGroup(
             {
-              guards: mergeGuards([candyMachine.candyGuard.guards, x.guards]),
-              label: x.label,
+              guards: candyMachine.candyGuard.guards,
               candyMachine,
               nftHoldings,
               verifyProof: proofMemo.verifyProof,
@@ -371,11 +546,35 @@ export default function useCandyMachineV3(
             },
             mx
           );
-        })
-      );
+        }
+
+        if (
+          candyMachine.candyGuard.groups &&
+          Array.isArray(candyMachine.candyGuard.groups)
+        ) {
+          await Promise.all(
+            candyMachine.candyGuard.groups.map(async (x) => {
+              guards[x.label] = await parseGuardGroup(
+                {
+                  guards: mergeGuards([
+                    candyMachine.candyGuard.guards,
+                    x.guards,
+                  ]),
+                  label: x.label,
+                  candyMachine,
+                  nftHoldings,
+                  verifyProof: proofMemo.verifyProof,
+                  walletAddress,
+                },
+                mx
+              );
+            })
+          );
+        }
+      }
       setGuardsAndGroups(guards);
     })();
-  }, [wallet.publicKey, nftHoldings, proofMemo, candyMachine]);
+  }, [wallet.publicKey, nftHoldings, proofMemo, candyMachine, mx]);
 
   const prices = React.useMemo((): {
     default?: ParsedPricesForUI;
