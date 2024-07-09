@@ -128,7 +128,7 @@ export default function useCandyMachineV3(
     return await mx.candyMachines().findByAddress({
       address: new PublicKey(candyMachineId),
     });
-  }, [candyMachineId]);
+  }, [candyMachineId, mx]);
 
   const refresh = React.useCallback(async () => {
     if (!wallet.publicKey) throw new Error("Wallet not loaded yet!");
