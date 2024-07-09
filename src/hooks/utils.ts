@@ -138,7 +138,7 @@ export const parseGuardGroup = async (
   const guardsParsed: GuardGroup = {};
   //   console.log(guardsInput);
   // Check for start date
-  if (guardsInput.startDate) {
+  if (guardsInput?.startDate) {
     const date = new Date(guardsInput.startDate.date.toNumber() * 1000);
     if (date.getTime() > Date.now()) {
       guardsParsed.startTime = date;
@@ -148,12 +148,12 @@ export const parseGuardGroup = async (
   }
 
   // Check for end date
-  if (guardsInput.endDate) {
+  if (guardsInput?.endDate) {
     guardsParsed.endTime = new Date(guardsInput.endDate.date.toNumber() * 1000);
   }
 
   // Check for mint limit
-  if (guardsInput.mintLimit) {
+  if (guardsInput?.mintLimit) {
     guardsParsed.mintLimit = { settings: guardsInput.mintLimit };
     if (mx)
       await fetchMintLimit(mx, candyMachine, guardsInput.mintLimit)
@@ -164,7 +164,7 @@ export const parseGuardGroup = async (
   }
 
   // Check for redeemed list
-  if (guardsInput.redeemedAmount) {
+  if (guardsInput?.redeemedAmount) {
     guardsParsed.redeemLimit = guardsInput.redeemedAmount.maximum.toNumber();
   }
 
@@ -172,7 +172,7 @@ export const parseGuardGroup = async (
 
   // guardsParsed.payments = []
 
-  if (guardsInput.solPayment) {
+  if (guardsInput?.solPayment) {
     guardsParsed.payment = {
       sol: {
         amount: guardsInput.solPayment.amount.basisPoints.toNumber(),
@@ -188,7 +188,7 @@ export const parseGuardGroup = async (
     // })
   }
 
-  if (guardsInput.tokenPayment) {
+  if (guardsInput?.tokenPayment) {
     guardsParsed.payment = {
       token: {
         mint: guardsInput.tokenPayment.mint,
@@ -210,7 +210,7 @@ export const parseGuardGroup = async (
       guardsParsed.payment.token
     );
   }
-  if (guardsInput.nftPayment) {
+  if (guardsInput?.nftPayment) {
     guardsParsed.payment = {
       nfts: nftHoldings.filter((y) =>
         y.collection?.address.equals(guardsInput.nftPayment.requiredCollection)
@@ -228,7 +228,7 @@ export const parseGuardGroup = async (
 
   // Check for burn guards
 
-  if (guardsInput.tokenBurn) {
+  if (guardsInput?.tokenBurn) {
     guardsParsed.burn = {
       token: {
         mint: guardsInput.tokenBurn.mint,
@@ -250,7 +250,7 @@ export const parseGuardGroup = async (
       guardsParsed.burn.token
     );
   }
-  if (guardsInput.nftBurn) {
+  if (guardsInput?.nftBurn) {
     guardsParsed.burn = {
       nfts: nftHoldings.filter((y) =>
         y.collection?.address.equals(guardsInput.nftBurn.requiredCollection)
@@ -268,7 +268,7 @@ export const parseGuardGroup = async (
 
   // Check for gates
 
-  if (guardsInput.tokenGate) {
+  if (guardsInput?.tokenGate) {
     guardsParsed.gate = {
       token: {
         mint: guardsInput.tokenGate.mint,
@@ -290,7 +290,7 @@ export const parseGuardGroup = async (
       guardsParsed.gate.token
     );
   }
-  if (guardsInput.nftGate) {
+  if (guardsInput?.nftGate) {
     guardsParsed.gate = {
       nfts: nftHoldings.filter((y) =>
         y.collection?.address.equals(guardsInput.nftGate.requiredCollection)
@@ -308,11 +308,11 @@ export const parseGuardGroup = async (
 
   // Check for whitelisted addresses
 
-  if (guardsInput.addressGate || guardsInput.allowList) {
+  if (guardsInput?.addressGate || guardsInput?.allowList) {
     let allowed: PublicKey[] = [];
-    if (guardsInput.addressGate) allowed.push(guardsInput.addressGate.address);
+    if (guardsInput?.addressGate) allowed.push(guardsInput.addressGate.address);
 
-    if (guardsInput.allowList?.merkleRoot) {
+    if (guardsInput?.allowList?.merkleRoot) {
       const isValid = verifyProof(
         guardsInput.allowList.merkleRoot,
         label || "default"
@@ -323,7 +323,7 @@ export const parseGuardGroup = async (
     guardsParsed.allowed = allowed;
   }
 
-  if (guardsInput.gatekeeper) {
+  if (guardsInput?.gatekeeper) {
     guardsParsed.gatekeeperNetwork = guardsInput.gatekeeper.network;
   }
 

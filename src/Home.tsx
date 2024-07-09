@@ -1,12 +1,13 @@
 import { useCallback } from "react";
 import { Paper, Snackbar, LinearProgress } from "@material-ui/core";
 import Alert from "@material-ui/lab/Alert";
-import { DefaultCandyGuardRouteSettings, Nft } from "@metaplex-foundation/js";
+// import { DefaultCandyGuardRouteSettings, Nft } from "@metaplex-foundation/js";
+import { Nft } from "@metaplex-foundation/js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import confetti from "canvas-confetti";
-import Link from "next/link";
+// import Link from "next/link";
 import Countdown from "react-countdown";
 
 import { useEffect, useMemo, useState } from "react";
@@ -369,15 +370,22 @@ const Home = (props: HomeProps) => {
   });
 
   const { guardLabel, guards, guardStates, prices } = useMemo(() => {
+  // const { group, guards, guardStates, prices } = useMemo(() => {
+      // console.debug(`guards`, candyMachineV3.guards, candyMachineV3.guardStates, candyMachineV3.prices)
     const guardLabel = defaultGuardGroup;
+    // console.debug(`guardLabel: ${guardLabel}`)
+    // debugger;
+    console.debug("candyMachineV3.guards["+guardLabel+"]: ", candyMachineV3.guards[guardLabel])
     return {
       guardLabel,
+      // group: guardLabel,
+
       guards:
         candyMachineV3.guards[guardLabel] ||
         candyMachineV3.guards.default ||
         {},
       guardStates: candyMachineV3.guardStates[guardLabel] ||
-        candyMachineV3.guardStates.default || {
+      candyMachineV3.guardStates.default || {
         isStarted: true,
         isEnded: false,
         isLimitReached: false,
@@ -387,7 +395,7 @@ const Home = (props: HomeProps) => {
         hasGatekeeper: false,
       },
       prices: candyMachineV3.prices[guardLabel] ||
-        candyMachineV3.prices.default || {
+      candyMachineV3.prices.default || {
         payment: [],
         burn: [],
         gate: [],
@@ -398,9 +406,22 @@ const Home = (props: HomeProps) => {
     candyMachineV3.guardStates,
     candyMachineV3.prices,
   ]);
+
+  const throwConfetti = useCallback(() => {
+    confetti({
+      particleCount: 400,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+  }, []);
+
   useEffect(() => {
     console.log({ guardLabel, guards, guardStates, prices });
   }, [guardLabel, guards, guardStates, prices]);
+  // useEffect(() => {
+  //   console.log({ group, guards, guardStates, prices });
+  // }, [group, guards, guardStates, prices]);
+
   useEffect(() => {
     (async () => {
       if (wallet?.publicKey) {
@@ -411,8 +432,8 @@ const Home = (props: HomeProps) => {
   }, [wallet, connection]);
 
   useEffect(() => {
-    if (mintedItems?.length === 0) throwConfetti();
-  }, [mintedItems]);
+    if (mintedItems?.length > 0) throwConfetti();
+  }, [mintedItems, throwConfetti]);
 
   const openOnSolscan = useCallback((mint) => {
     window.open(
@@ -425,16 +446,11 @@ const Home = (props: HomeProps) => {
     );
   }, []);
 
-  const throwConfetti = useCallback(() => {
-    confetti({
-      particleCount: 400,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-  }, [confetti]);
 
   const startMint = useCallback(
     async (quantityString: number = 1) => {
+      // alert("minting")
+      console.debug("Minting", quantityString);
       const nftGuards: NftPaymentMintSettings[] = Array(quantityString)
         .fill(undefined)
         .map((_, i) => {
@@ -461,8 +477,8 @@ const Home = (props: HomeProps) => {
       // debugger;
       candyMachineV3
         .mint(quantityString, {
-          groupLabel: guardLabel,
-          nftGuards,
+           groupLabel: guardLabel,
+          // nftGuards,
         })
         .then((items) => {
           setMintedItems(items as any);

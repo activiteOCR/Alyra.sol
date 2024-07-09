@@ -157,6 +157,8 @@ export default function useCandyMachineV3(
         nftGuards?: NftPaymentMintSettings[];
       } = {}
     ) => {
+      // debugger
+
       if (!guardsAndGroups[opts.groupLabel || "default"])
         throw new Error("Unknown guard group label");
 
@@ -297,7 +299,6 @@ export default function useCandyMachineV3(
 
   React.useEffect(() => {
     if (!mx || !wallet.publicKey) return;
-    console.log("useEffact([mx, wallet.publicKey])");
     mx.use(walletAdapterIdentity(wallet));
 
     mx.rpc()
@@ -349,7 +350,7 @@ export default function useCandyMachineV3(
       const guards = {
         default: await parseGuardGroup(
           {
-            guards: candyMachine.candyGuard.guards,
+            guards: candyMachine.candyGuard?.guards,
             candyMachine,
             nftHoldings,
             verifyProof: proofMemo.verifyProof,
@@ -358,21 +359,23 @@ export default function useCandyMachineV3(
           mx
         ),
       };
-      await Promise.all(
-        candyMachine.candyGuard.groups.map(async (x) => {
-          guards[x.label] = await parseGuardGroup(
-            {
-              guards: mergeGuards([candyMachine.candyGuard.guards, x.guards]),
-              label: x.label,
-              candyMachine,
-              nftHoldings,
-              verifyProof: proofMemo.verifyProof,
-              walletAddress,
-            },
-            mx
-          );
-        })
-      );
+      if (candyMachine.candyGuard?.groups) {
+        await Promise.all(
+          candyMachine.candyGuard?.groups.map(async (x) => {
+            guards[x.label] = await parseGuardGroup(
+              {
+                guards: mergeGuards([candyMachine.candyGuard.guards, x.guards]),
+                label: x.label,
+                candyMachine,
+                nftHoldings,
+                verifyProof: proofMemo.verifyProof,
+                walletAddress,
+              },
+              mx
+            );
+          })
+        );
+      }
       setGuardsAndGroups(guards);
     })();
   }, [wallet.publicKey, nftHoldings, proofMemo, candyMachine]);
